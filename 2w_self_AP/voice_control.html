@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Controlled Car</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1abc9c, #3498db);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: white;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .voice-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .mic-btn {
+            display: block;
+            width: 100px;
+            height: 100px;
+            margin: 20px auto;
+            border-radius: 50%;
+            background: var(--secondary);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .mic-btn.active {
+            background: var(--success);
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(46, 204, 113, 0.5);
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 Voice Controlled Car</h1>
+            <p>Connect to WiFi: <strong>VoiceCarAP</strong></p>
+        </div>
+
+        <div class="voice-panel">
+            <button class="mic-btn" id="micButton">🎤</button>
+            <div class="status" id="status">Press the microphone to start</div>
+        </div>
+    </div>
+
+    <script>
+        const micButton = document.getElementById('micButton');
+        const statusDiv = document.getElementById('status');
+        let recognition;
+
+        function updateStatus(message, isError = false) {
+            statusDiv.textContent = message;
+            statusDiv.style.color = isError ? '#e74c3c' : '#2c3e50';
+        }
+
+        function sendCommand(command) {
+            fetch(`http://192.168.4.1/${command}`)
+                .then(() => updateStatus(`Command sent: ${command}`))
+                .catch(err => updateStatus(`Error: ${err.message}`, true));
+        }
+
+        function startListening() {
+            if (!('webkitSpeechRecognition' in window)) {
+                updateStatus('Speech API not supported', true);
+                return;
+            }
+
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            micButton.classList.add('active');
+            updateStatus("Listening...");
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript.toLowerCase();
+                processCommand(transcript);
+            };
+
+            recognition.onerror = (event) => {
+                updateStatus(`Error: ${event.error}`, true);
+                micButton.classList.remove('active');
+            };
+
+            recognition.onend = () => {
+                micButton.classList.remove('active');
+                updateStatus("Ready for commands");
+            };
+
+            recognition.start();
+        }
+
+        function processCommand(transcript) {
+            let command = 'stop';
+            if (transcript.includes('forward')) command = 'forward';
+            else if (transcript.includes('backward')) command = 'backward';
+            else if (transcript.includes('left')) command = 'left';
+            else if (transcript.includes('right')) command = 'right';
+
+            sendCommand(command);
+            updateStatus(`Voice command: "${transcript}" → Sending ${command}`);
+        }
+
+        micButton.addEventListener('click', startListening);
+    </script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>4-Wheel Voice Control</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a237e, #4a148c);
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .control-panel {
+            background: rgba(255,255,255,0.1);
+            padding: 2rem;
+            border-radius: 15px;
+            margin: 2rem 0;
+            backdrop-filter: blur(10px);
+        }
+        .mic-btn {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: #2196F3;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .mic-btn.active {
+            background: #4CAF50;
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(76,175,80,0.5);
+        }
+        .status {
+            padding: 1rem;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>4-Wheel Voice Controlled Car</h1>
+        <div class="control-panel">
+            <button class="mic-btn" id="micBtn">🎤</button>
+            <div class="status" id="status">Ready</div>
+        </div>
+        <p>Connect to WiFi: <strong>4WheelVoiceCar</strong></p>
+        <p>Password: <strong>voicecar123</strong></p>
+    </div>
+
+    <script>
+        const micBtn = document.getElementById('micBtn');
+        const statusDiv = document.getElementById('status');
+        let recognition;
+
+        function updateStatus(text, isError = false) {
+            statusDiv.textContent = text;
+            statusDiv.style.color = isError ? '#ff4444' : '#fff';
+        }
+
+        function sendCommand(cmd) {
+            fetch(`http://192.168.4.1/${cmd}`)
+                .then(() => updateStatus(`Sent: ${cmd}`))
+                .catch(err => updateStatus(`Error: ${err}`, true));
+        }
+
+        micBtn.addEventListener('click', () => {
+            if (!('webkitSpeechRecognition' in window)) {
+                updateStatus('Speech API not supported', true);
+                return;
+            }
+
+            recognition = new webkitSpeechRecognition();
+            recognition.lang = 'en-US';
+            micBtn.classList.add('active');
+            updateStatus('Listening...');
+
+            recognition.onresult = (e) => {
+                const cmd = e.results[0][0].transcript.toLowerCase();
+                let action = 'stop';
+                if (cmd.includes('forward')) action = 'forward';
+                else if (cmd.includes('backward')) action = 'backward';
+                else if (cmd.includes('left')) action = 'left';
+                else if (cmd.includes('right')) action = 'right';
+                sendCommand(action);
+                updateStatus(`Heard: "${cmd}" → ${action}`);
+            };
+
+            recognition.onerror = (e) => {
+                updateStatus(`Error: ${e.error}`, true);
+                micBtn.classList.remove('active');
+            };
+
+            recognition.onend = () => {
+                micBtn.classList.remove('active');
+            };
+
+            recognition.start();
+        });
+    </script>
+</body>
+</html>

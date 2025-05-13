@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Voice Control</title>
+    <style>
+        body { text-align: center; padding: 20px; }
+        button { padding: 15px 30px; font-size: 18px; }
+    </style>
+</head>
+<body>
+    <h1>Voice Controlled Car</h1>
+    <button onclick="startListening()">🎤 Start Listening</button>
+
+    <script>
+        function startListening() {
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = 'en-US';
+            
+            recognition.onresult = function(event) {
+                const cmd = event.results[0][0].transcript.toLowerCase();
+                sendCommand(cmd);
+            }
+            
+            recognition.start();
+        }
+
+        function sendCommand(cmd) {
+            let action = 'stop';
+            if(cmd.includes('forward')) action = 'forward';
+            else if(cmd.includes('backward')) action = 'backward';
+            else if(cmd.includes('left')) action = 'left';
+            else if(cmd.includes('right')) action = 'right';
+            
+            fetch(`/${action}`);
+        }
+    </script>
+</body>
+</html>
